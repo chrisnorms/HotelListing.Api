@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using HotelListing.Api.Data;
 using HotelListing.Api.DTOs.Hotel;
 using System.Reflection.Metadata.Ecma335;
+using HotelListing.Api.Services;
 
 namespace HotelListing.Api.Controllers
 {
@@ -15,20 +16,18 @@ namespace HotelListing.Api.Controllers
     [ApiController]
     public class HotelsController : ControllerBase
     {
-        private readonly HotelListingDbContext _context;
+        private readonly HotelsService hotelsService;
 
-        public HotelsController(HotelListingDbContext context)
+        public HotelsController(HotelsService hotelsService)
         {
-            _context = context;
+            this.hotelsService = hotelsService;
         }
 
         // GET: api/Hotels
         [HttpGet]
         public async Task<ActionResult<IEnumerable<GetHotelsDto>>> GetHotels()
         {
-            var hotels = await _context.Hotels
-                .Select(h => new GetHotelsDto(h.Id, h.Name, h.Address, h.Rating, h.CountryId))
-                .ToListAsync();
+            var hotels = await hotelsService.GetHotelsAsync();
 
             //return await _context.Hotels
             //.Include(h => h.Country)
@@ -41,10 +40,7 @@ namespace HotelListing.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<GetHotelDto>> GetHotel(int id)
         {
-            var hotel = await _context.Hotels
-                .Where(h => h.Id == id)
-                .Select(h => new GetHotelDto(h.Id, h.Name, h.Address, h.Rating, h.Country!.ShortName))
-                .FirstOrDefaultAsync();
+            var hotel = await hotelsService.GetHotelAsync(id);
 
             if (hotel == null)
             {
@@ -64,35 +60,7 @@ namespace HotelListing.Api.Controllers
                 return BadRequest();
             }
 
-            var hotel = await _context.Hotels.FindAsync(id);
-
-            if (hotel == null)
-            {
-                return NotFound();
-            }
-
-            hotel.Name = hotelDto.Name;
-            hotel.Address = hotelDto.Address;
-            hotel.Rating = hotelDto.Rating;
-            hotel.CountryId = hotelDto.CountryId;
-
-            _context.Entry(hotel).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!HotelExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await hotelsService.UpdateHotelAsync(id, hotelDto);
 
             return NoContent();
         }
@@ -102,16 +70,7 @@ namespace HotelListing.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Hotel>> PostHotel(CreateHotelDto hotelDto)
         {
-            var hotel = new Hotel
-            {
-                Name= hotelDto.Name,
-                Address= hotelDto.Address,
-                Rating= hotelDto.Rating,
-                CountryId= hotelDto.CountryId,
-            };
-
-            _context.Hotels.Add(hotel);
-            await _context.SaveChangesAsync();
+            var hotel = await hotelsService.CreateHotelAsync(hotelDto);
 
             return CreatedAtAction("GetHotel", new { id = hotel.Id }, hotel);
         }
@@ -120,21 +79,14 @@ namespace HotelListing.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHotel(int id)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
-            if (hotel == null)
-            {
-                return NotFound();
-            }
-
-            _context.Hotels.Remove(hotel);
-            await _context.SaveChangesAsync();
+            await hotelsService.DeleteHotelAsync(id);
 
             return NoContent();
         }
 
-        private bool HotelExists(int id)
-        {
-            return _context.Hotels.Any(e => e.Id == id);
-        }
+        //private bool HotelExists(int id)
+        //{
+        //    return _context.Hotels.Any(e => e.Id == id);
+        //}
     }
 }
