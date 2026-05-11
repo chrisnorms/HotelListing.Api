@@ -9,6 +9,7 @@ using HotelListing.Api.Data;
 using HotelListing.Api.DTOs.Hotel;
 using System.Reflection.Metadata.Ecma335;
 using HotelListing.Api.Services;
+using AutoMapper;
 
 namespace HotelListing.Api.Controllers
 {
@@ -17,10 +18,12 @@ namespace HotelListing.Api.Controllers
     public class HotelsController : ControllerBase
     {
         private readonly HotelsService hotelsService;
+        private readonly IMapper mapper;
 
-        public HotelsController(HotelsService hotelsService)
+        public HotelsController(HotelsService hotelsService, IMapper mapper)
         {
             this.hotelsService = hotelsService;
+            this.mapper = mapper;
         }
 
         // GET: api/Hotels
